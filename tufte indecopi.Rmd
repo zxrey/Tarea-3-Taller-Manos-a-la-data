@@ -1,0 +1,276 @@
+---
+title: "Barreras burocráticas de Indecopi"
+subtitle: "Manos a la data"
+author: "Reynaldo Huaman Valenzuela"
+date: "Creado el `r Sys.Date()`"
+output: tint::tintHtml
+bibliography: skeleton.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+library(tint)
+# invalidate cache when the package version changes (no entiendo para que sirve lo de abajo me salia error agregandolo)tint::tintHtml
+# knitr::opts_chunk$set(tidy = FALSE, cache.extra = packageVersion('tint'))
+# options(htmltools.dir.version = FALSE)
+```
+```{r ,echo=FALSE,comment=F,warning=FALSE}
+url <- "https://cloudfront-us-east-1.images.arcpublishing.com/elcomercio/MW232SUBHRBVDFISXCYVZDT34A.jpg"
+
+
+```
+<center><img src="`r url`" height="200px" width="300px" ></center> 
+
+`r newthought('INDECOPI')`^[[https://www.indecopi.gob.pe/en/indecopi](https://www.edwardtufte.com/tufte/books_be)]
+
+El Instituto Nacional de Defensa de la Competencia y de la Protección de la Propiedad Intelectual, es un organismo público autónomo especializado del Estado Peruano, adscrito a la Presidencia del Consejo de Ministros, con personería jurídica de derecho público.
+
+
+El INDECOPI le informa que en virtud a las acciones realizadas por la Comisión de Eliminación de Barreras Burocráticas (CEB) a través de investigaciones realizadas de oficio así como consecuencia de los procedimientos iniciados de parte, las entidades de la Administración Pública han eliminado requisitos, derechos de tramitación, plazos administrativos, regímenes de silencio administrativo, entre otros, que no se encontraban acorde a lo dispuesto en el marco normativo vigente, los cuales podrían calificar como presuntas barreras burocráticas ilegales y/o carente de razonabilidad.
+
+Usando los datos de la CEB que se encuentran en la pagina del INDECOPI^[https://www.indecopi.gob.pe/en/web/eliminacion-de-barreras-burocraticas/informacion-util], desde el periodo 2013 hasta la fecha, se realiza un resumen en tablas y graficos que se encuentran detallados a continuación:
+
+```{r mis-configuraciones-iniciales, fig.margin=TRUE, fig.width=4, fig.height=4, cache=TRUE, echo=FALSE,message=FALSE,comment=FALSE,warning=FALSE,echo=FALSE}
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(ggalluvial)
+library(parcats)
+library(easyalluvial)
+library(forcats)
+library(DataExplorer)
+library(extrafont)
+library(ggthemes)
+
+setwd("E:/R clases/Taller manos a la data/datos/MDv01sesion3_parte-practica-master/1 Indecopi")
+
+
+barreras <- readxl::read_xls("Data Logros al 31.12.2017.xls",skip = 1)
+
+barreras <- barreras %>%
+  mutate(TIPO_ENTIDAD = case_when(
+                          grepl("MUNICIPALIDA", ENTIDAD) ~ "Gobierno Regional",
+                          grepl("UNIVERSIDAD", ENTIDAD) ~ "Universidad",
+                          grepl("MINISTERIO", ENTIDAD) ~ "Ejecutivo",
+                          grepl("ASAMBLEA", ENTIDAD) ~ "Universidad",
+                          grepl("SEGURO SOCIAL DE SALUD", ENTIDAD) ~ "Otras instituciones del Estado",
+                          grepl("COLEGIO ODONTOLÓGICO", ENTIDAD) ~ "Colegios profesionales",
+                          grepl("REGISTRO NACIONAL", ENTIDAD) ~ "Otras instituciones del Estado",
+                          grepl("SUPERINTENDENCIA", ENTIDAD) ~ "Instituciones autónomas del Estado",
+                          grepl("PRESIDENCIA DEL CONSEJO", ENTIDAD) ~ "Ejecutivo",
+                          grepl("AUTORIDAD PORTUARIA", ENTIDAD) ~ "Otras instituciones del Estado",
+                          grepl("DEFENSORIA DEL", ENTIDAD) ~ "Instituciones autónomas del Estado",
+                          grepl("SERVICIO NACIONAL", ENTIDAD) ~ "Otras instituciones del Estado",
+                          
+                          )
+  )
+
+barreras <- barreras %>%
+  mutate(`TIPO DE ACTUACIÓN` = case_when(
+    grepl("iNVESTIGACIÓN DE OFICIO", `TIPO DE ACTUACIÓN`) ~ "INVESTIGACIÓN DE OFICIO",
+    TRUE~`TIPO DE ACTUACIÓN`
+  )
+  )
+
+
+barreras <- barreras %>%
+  mutate(TIPO_BARRERA = case_when(
+    grepl("ORDEN", `NORMA QUE ESTABLECÍA LA BARRERA`) & TIPO_ENTIDAD == "Gobierno Regional" ~ "Ordenanzas de gobiernos regionales"   
+  )
+  )
+
+barreras <- barreras %>%
+  mutate(TIPO_BARRERA = case_when(
+    grepl("ORDEN", `NORMA QUE ESTABLECÍA LA BARRERA`) & TIPO_ENTIDAD %in% c("Gobierno Regional") ~ "Ordenanza de gobiernos regionales"  ,
+    grepl("RESOLUC", `NORMA QUE ESTABLECÍA LA BARRERA`) & TIPO_ENTIDAD %in% c("Universidad") ~ "Resolución universitaria",   
+    grepl("DECRE", `NORMA QUE ESTABLECÍA LA BARRERA`) & TIPO_ENTIDAD %in% c("Gobierno Regional") ~ "Decreto de gobiernos regionales"  ,
+    grepl("Ordenanza", `NORMA QUE ESTABLECÍA LA BARRERA`) & TIPO_ENTIDAD %in% c("Gobierno Regional") ~ "Ordenanza de gobiernos regionales"  ,
+    grepl("ODENANZA", `NORMA QUE ESTABLECÍA LA BARRERA`) & TIPO_ENTIDAD %in% c("Gobierno Regional") ~ "Ordenanza de gobiernos regionales"  ,
+    grepl("DECRETO SUPREMO", `NORMA QUE ESTABLECÍA LA BARRERA`) & TIPO_ENTIDAD %in% c("Ejecutivo") ~ "DECRETO SUPREMO"  ,
+    grepl("PORTAL", `NORMA QUE ESTABLECÍA LA BARRERA`) ~ "Web"  ,
+    grepl("RESOLUCIÓN MINISTERIAL", `NORMA QUE ESTABLECÍA LA BARRERA`) ~ "RESOLUCIÓN MINISTERIAL"  ,
+    grepl("WEB INSTITUCIONA", `NORMA QUE ESTABLECÍA LA BARRERA`) ~ "Web"  ,
+    grepl("RESOLUCIÓN DEFENSORIAL", `NORMA QUE ESTABLECÍA LA BARRERA`) ~ "RESOLUCIÓN DEFENSORIAL"  ,
+    grepl("DECRETO SUPREMO", `NORMA QUE ESTABLECÍA LA BARRERA`) ~ "DECRETO SUPREMO"  ,
+    grepl("RESOLUCIÓN JEFATURAL", `NORMA QUE ESTABLECÍA LA BARRERA`) ~ "RESOLUCIÓN JEFATURAL"  ,
+    grepl("DIRECTIVA", `NORMA QUE ESTABLECÍA LA BARRERA`) ~ "Directiva"  ,
+    grepl("REGLAMENTO", `NORMA QUE ESTABLECÍA LA BARRERA`) ~ "Reglamento"  ,
+    
+    
+  )
+  )
+
+
+
+
+
+
+ 
+barreras2 <- barreras %>% filter(TIPO_BARRERA %in% c(NA))
+
+#### Adecuación
+
+
+barreras <- barreras %>%
+  mutate(TIPO_ADECUACION = case_when(
+    grepl("ORDEN", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) & TIPO_ENTIDAD %in% c("Gobierno Regional") ~ "Ordenanza de gobiernos regionales"  ,
+    grepl("RESOLUC", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) & TIPO_ENTIDAD %in% c("Universidad") ~ "Resolución universitaria",   
+    grepl("DECRE", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) & TIPO_ENTIDAD %in% c("Gobierno Regional") ~ "Decreto de gobiernos regionales"  ,
+    grepl("Ordenanza", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) & TIPO_ENTIDAD %in% c("Gobierno Regional") ~ "Ordenanza de gobiernos regionales"  ,
+    grepl("ODENANZA", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) & TIPO_ENTIDAD %in% c("Gobierno Regional") ~ "Ordenanza de gobiernos regionales"  ,
+    grepl("DECRETO SUPREMO", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) & TIPO_ENTIDAD %in% c("Ejecutivo") ~ "DECRETO SUPREMO"  ,
+    grepl("PORTAL", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) ~ "Web"  ,
+    grepl("RESOLUCIÓN MINISTERIAL", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) ~ "RESOLUCIÓN MINISTERIAL"  ,
+    grepl("WEB INSTITUCIONA", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) ~ "Web"  ,
+    grepl("RESOLUCIÓN DEFENSORIAL", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) ~ "RESOLUCIÓN DEFENSORIAL"  ,
+    grepl("DECRETO SUPREMO", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) ~ "DECRETO SUPREMO"  ,
+    grepl("RESOLUCIÓN JEFATURAL", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) ~ "RESOLUCIÓN JEFATURAL"  ,
+    grepl("DIRECTIVA", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) ~ "Directiva"  ,
+    grepl("REGLAMENTO", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) ~ "Reglamento"  ,
+    grepl("CONCLUSIÓN DEL PROCEDIMIENTO", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) ~ "CONCLUSIÓN DEL PROCEDIMIENTO"  ,
+    grepl("Decreto de Alcaldía", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) & TIPO_ENTIDAD %in% c("Gobierno Regional") ~ "Decreto de gobiernos regionales"  ,
+    grepl("RESOLUCIÓN DE GERENCIA GENERAL", `ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`) ~ "Reglamento"  ,
+    
+    
+  )
+  )
+
+barreras2 <- barreras %>% filter(TIPO_ADECUACION %in% c(NA))
+
+barreras <- barreras %>%
+  mutate(REVERSION = case_when(TIPO_ADECUACION==TIPO_BARRERA ~ "SI",
+                               TRUE ~ "NO"))
+
+barreras3 <-  barreras %>% select(REVERSION,`TIPO DE ACTUACIÓN`,TIPO_ENTIDAD,TIPO_BARRERA,TIPO_ADECUACION)
+barreras3 <-  barreras %>% select(`TIPO DE ACTUACIÓN`,TIPO_ENTIDAD,TIPO_BARRERA,TIPO_ADECUACION,REVERSION)
+
+
+barreras3 <- lapply(barreras3,function(x) as_factor(x))
+barreras3 <- as.data.frame(barreras3)
+p <-  alluvial_wide(barreras3, max_variables = 5)
+
+
+
+#mi trabajo personal
+
+g0 <- barreras %>%  filter(ENTIDAD == "UNIVERSIDAD NACIONAL DE SAN ANTONIO ABAD DE CUSCO", REVERSION =="SI") 
+g1 <- barreras %>% count(`ADECUACIÓN (NORMA QUE ELIMINA BARRERA)`, sort = TRUE)
+g2 <- barreras %>% count(TIPO_ENTIDAD, sort = TRUE)
+g3 <- barreras %>% count(TIPO_BARRERA, sort = TRUE)
+g4 <- barreras %>% count(TIPO_ADECUACION, sort = TRUE)
+
+
+g5 <- barreras %>% group_by(TIPO_ENTIDAD,TIPO_BARRERA)%>% count(TIPO_BARRERA, sort = TRUE) %>% arrange(TIPO_ENTIDAD,desc(n))
+
+
+g6 <- barreras %>% group_by(ENTIDAD,TIPO_ENTIDAD)
+
+Conteo_tipo_actuacion <- barreras %>% group_by(ENTIDAD,`TIPO DE ACTUACIÓN`)  %>% count(ENTIDAD, sort = TRUE) %>% arrange(ENTIDAD,desc(n)) 
+
+Conteo_tipo_actuacion_adecuacion <- barreras %>% group_by(TIPO_ENTIDAD,TIPO_BARRERA,TIPO_ADECUACION,)  %>% count(TIPO_ENTIDAD, sort = TRUE) %>% arrange(TIPO_ENTIDAD,desc(n))
+```
+## Tabla 1
+
+Esta primera tabla muestra los procedimientos segun entidad.
+
+```{r,echo=FALSE}
+knitr::kable(Conteo_tipo_actuacion)
+```
+
+## Tabla 2
+
+Esta tabla muestra el tipo de entidad y el tipo de barrera con la que se enfrenta.
+
+```{r,echo=FALSE}
+knitr::kable(g5)
+```
+
+## Tabla 3
+
+Esta primera tabla muestra un conteo de los procedimientos presentados según cada entidad.
+
+```{r,echo=FALSE}
+knitr::kable(g2)
+```
+
+## Tabla 4
+
+Esta tabla muestra el tipo de entidad, el tipo de barrera con la que se enfrenta y la entidad o la forma en como se elimina la barrera.
+
+```{r,echo=FALSE}
+knitr::kable(Conteo_tipo_actuacion_adecuacion)
+```
+
+
+
+
+# Caso barreras burocráticas
+
+
+
+## Relaciones de la data
+Este grafico nos muestra un resumen de las tablas mostradas anteriormente. Asimismo se muestra si la entidad que presenta el procedimiento, es la que elimina su propia barrera
+
+
+```{r grafico2, fig.fullwidth = TRUE,  fig.width=10, fig.height=15, cache=TRUE,echo=FALSE}
+#fig.margin = TRUE reemplaza a fig.fullwitdh = true para que el grafico salga a un costado
+
+parcats(p, marginal_histograms = TRUE, data_input = barreras3)
+
+
+  #MIS GRAFICOS
+ theme_recession <- theme(
+      rect = element_rect(fill = "grey92"),
+      legend.key = element_rect(color = NA),
+      axis.ticks = element_blank(),
+      panel.grid = element_blank(),
+      axis.text = element_text(color = "grey25"),
+      plot.title = element_text(face = "italic", size = 16),
+      
+    )
+  
+    theme_tufte_recession <- theme_tufte() + theme_recession
+  
+    ggplot(g6, aes(TIPO_ENTIDAD, fill= TIPO_BARRERA))+
+      geom_bar()+labs(x="Tipo de entidad",y="Numero de casos",title = "Numero de barreras por entidad",subtitle = "Histórico desde el 2013", caption = "Fuente: INDECOPI") +
+      theme_tufte_recession
+```
+
+
+
+
+## OTRO TIPO DE GRAFICO
+Podriamos usar otro tipo de graficos, dependiendo al publico al que se quiere informar, asi como el que se presenta a continuacion:
+
+```{r grafico3,echo=FALSE,comment=F,warning=FALSE,cache=TRUE} 
+
+
+ z <-  theme_classic() +
+    theme(axis.line.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.text = element_text(color = "black"),
+          axis.title = element_blank(),
+          legend.position = "none")
+ 
+  ggplot(g2, aes(x = n, y = TIPO_ENTIDAD)) +
+    geom_point(size = 8) +
+    geom_segment(aes(xend = 20, yend =  TIPO_ENTIDAD), size = 2) +
+    geom_text(aes(label = round(n,1)), color = "white", size = 2.5) +
+    scale_x_continuous("", expand = c(0,0), limits = c(-100,3000), position = "top") +
+    labs(title = "Numero de barreras segun entidad", caption = "Fuente: INDECOPI")+z
+  
+ 
+```
+
+# Recordatorio final
+
+
+> _Es fácil cuando comienzas a programar sentirse muy frustrado y pensar, “Soy yo, Realmente soy estúpido”, o “No estoy hecho para programar”. Sin embargo, ese no es el caso. Todos nos sentimos frustrados. Incluso yo me siento frustrado a veces cuando programo en R. Es natural sentirse así cuando programas. Es algo que le sucede a todos y que se reduce conforme pasa el tiempo. No te culpes. Toma un respiro, haz algo divertido, y regresa e inténtalo de nuevo luego.._
+>
+> `r quote_footer('--- Hadley')`
+
